@@ -1,0 +1,76 @@
+{
+  "name": "tre-videos",
+  "version": "1.0.0",
+  "description": "video renderer for tre",
+  "main": "main.js",
+  "browser": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/regular/tre-videos.git"
+  },
+  "keywords": [],
+  "author": "Jan Bölsche <jan@lagomorph.de> (https://regular.codes/)",
+  "license": "AGPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/regular/tre-videos/issues"
+  },
+  "homepage": "https://github.com/regular/tre-videos#readme",
+  "tre-init": {
+    "plugins": {
+      "tre-client": true,
+      "ssb-revisions": true
+    },
+    "prototypes": {
+      ".": true
+    },
+    "importers": {
+      ".": true
+    },
+    "messages": {
+      "videos": {
+        "type": "folder",
+        "root": "%root",
+        "branch": "%assets"
+      }
+    },
+    "files": {
+      "video-mp4": {
+        "path": "SampleVideo_1280x720_1mb.mp4",
+        "content": {
+          "branch": "%videos",
+          "root": "%root"
+        }
+      },
+      "video-mkv": {
+        "path": "SampleVideo_640x360_1mb.mkv",
+        "content": {
+          "branch": "%videos",
+          "root": "%root"
+        }
+      }
+    }
+  },
+  "devDependencies": {
+    "brfs": "^2.0.2",
+    "ssb-revisions": "^1.0.1",
+    "tape": "^4.9.2",
+    "tre-client": "^2.1.0",
+    "tre-editor-shell": "^1.5.0",
+    "tre-finder": "^2.5.0",
+    "tre-property-sheet": "^1.3.1",
+    "tre-prototypes": "^1.6.0"
+  },
+  "dependencies": {
+    "bl": "^3.0.0",
+    "debug": "^4.1.1",
+    "file-type": "^10.9.0",
+    "mutant": "^3.22.1",
+    "pull-stream": "^3.6.9",
+    "sodium-native": "^2.2.6",
+    "tre-activity-indicator": "^1.0.0",
+    "tre-file-importer": "^3.1.5"
+  }
+}
