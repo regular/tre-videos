@@ -1,4 +1,4 @@
 tre-videos
 ---
 
-License: ISC
+License: AGPLv3 - Copyright Jan Boelsche
