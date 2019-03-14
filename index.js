@@ -97,7 +97,7 @@ module.exports = function(ssb, opts) {
       // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
       muted: true,
 
-      'ev-replay-video': function() {
+      'ev-play': function() {
         replay()
       },
       'ev-ended': function() {
@@ -117,30 +117,30 @@ module.exports = function(ssb, opts) {
         src: src()
       }),
     ])
-    if (inEditor) {
-      load()
-      return h('.tre-videos-editor', [
-        h('h1', renderStr(computed(previewObs, kv => kv && kv.value.content.name || 'No Name'))),
-        computed(uploading, u => u ? [
-          activityIndicator({}),
-          h('.upload-progress', computed(progress, p => {
-            if (p>0.99) return "Please wait ..."
-            return Math.floor(p*100) + '%'
-          }))
-        ] : [
-          el,
-          h('.tre-videos-controls', [
-            h('button', {
-              'ev-click': ()=> load()
-            }, 'Load'),
-            h('button', {
-              'ev-click': ()=> replay()
-            }, 'Play')
-          ])
+
+    load()
+    if (!inEditor) return el
+
+    return h('.tre-videos-editor', [
+      h('h1', renderStr(computed(previewObs, kv => kv && kv.value.content.name || 'No Name'))),
+      computed(uploading, u => u ? [
+        activityIndicator({}),
+        h('.upload-progress', computed(progress, p => {
+          if (p>0.99) return "Please wait ..."
+          return Math.floor(p*100) + '%'
+        }))
+      ] : [
+        el,
+        h('.tre-videos-controls', [
+          h('button', {
+            'ev-click': ()=> load()
+          }, 'Load'),
+          h('button', {
+            'ev-click': ()=> replay()
+          }, 'Play')
         ])
       ])
-    }
-    return el
+    ])
 
     function upload(file) {
       return doImport()
