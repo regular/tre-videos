@@ -89,8 +89,8 @@ module.exports = function(ssb, opts) {
 
     el = h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
       hooks: [el => release],
-      width: computed(previewContentObs, c => c && c.width || ""),
-      height: computed(previewContentObs, c => c && c.height || ""),
+      width: computed(previewContentObs, c => c && c.width || 640),
+      height: computed(previewContentObs, c => c && c.height || 480),
       preload: "none",
       //autoplay: "true",
       // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
