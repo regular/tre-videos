@@ -97,7 +97,7 @@ module.exports = function(ssb, opts) {
       // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
       muted: true,
 
-      'ev-play': function() {
+      'ev-replay': function() {
         replay()
       },
       'ev-ended': function() {
