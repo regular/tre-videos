@@ -40,7 +40,7 @@ module.exports = function(ssb, opts) {
     const src = getSrcObs(previewContentObs)
     const uploading = Value(false)
     const progress = Value(0)
-    const {isEmbedded} = ctx
+    const {isEmbedded, autoplay} = ctx
 
     function set(o) {
       ownContentObs.set(Object.assign({}, ownContentObs(), o))
@@ -66,11 +66,16 @@ module.exports = function(ssb, opts) {
     if (window.stop) window.stop()
 
     let el
-    function release() {
-      const source = el.querySelector('source')
-      console.log('releasing video', source.getAttribute('src', ''))
+    function release(e) {
+      e = e || el
+      const source = e.querySelector('source')
+      console.log('releasing video', source.getAttribute('src'))
       source.setAttribute('src', '')
-      el.load()
+      // TODO: this throws (in promise)
+      // when the video is no longer in the dom,
+      // which is the case when we are called by
+      // the mutant hook.
+      e.load()
     }
 
     function replay() {
@@ -118,7 +123,11 @@ module.exports = function(ssb, opts) {
       }),
     ])
 
-    load()
+    if (autoplay) {
+      replay()
+    } else {
+      load()
+    }
     if (!inEditor) return el
 
     return h('.tre-videos-editor', [
