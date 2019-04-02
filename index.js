@@ -10,13 +10,6 @@ const activityIndicator = require('tre-activity-indicator')
 
 const {importFiles, factory} = require('./common')
 
-/* Several workarounds for Chrome Issue 234779
- * taken from here:
- * https://bugs.chromium.org/p/chromium/issues/detail?id=234779
- * and here:
- * https://github.com/videojs/video.js/issues/455
- */
-
 module.exports = function(ssb, opts) {
   opts = opts || {}
   const getSrcObs = Source(ssb)
@@ -52,13 +45,6 @@ module.exports = function(ssb, opts) {
       }
     })
 
-    // if the video is part of the contetnt of
-    // another node, we call it embedded
-    // (idle loops are videos that are not embedded)
-
-    if (isEmbedded) {
-      bus.sendToParentFrame('playback-start', {})
-    }
     const inEditor = (ctx.where || '').includes('editor')
     // make sure all videos are stopped
     // and their sockets are released
@@ -66,18 +52,6 @@ module.exports = function(ssb, opts) {
     if (window.stop) window.stop()
 
     let el
-    function release(e) {
-      e = e || el
-      const source = e.querySelector('source')
-      console.log('releasing video', source.getAttribute('src'))
-      source.setAttribute('src', '')
-      // TODO: this throws (in promise)
-      // when the video is no longer in the dom,
-      // which is the case when we are called by
-      // the mutant hook.
-      e.load()
-    }
-
     function replay() {
       const source = el.querySelector('source')
       source.setAttribute('src', src())
@@ -93,20 +67,16 @@ module.exports = function(ssb, opts) {
     }
 
     el = h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
-      hooks: [el => release],
       width: computed(previewContentObs, c => c && c.width || 640),
       height: computed(previewContentObs, c => c && c.height || 480),
-      preload: "none",
-      //autoplay: "true",
+      //preload: "none",
+      autoplay,
       // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
       // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
       muted: true,
 
       'ev-replay': function() {
         replay()
-      },
-      'ev-ended': function() {
-        release()
       },
       'ev-loadedmetadata': () => {
         console.log(`loaded video props: ${el.videoWidth}x${el.videoHeight} ${el.duration}`)
@@ -123,11 +93,6 @@ module.exports = function(ssb, opts) {
       }),
     ])
 
-    if (autoplay) {
-      replay()
-    } else {
-      load()
-    }
     if (!inEditor) return el
 
     return h('.tre-videos-editor', [
