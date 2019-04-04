@@ -71,6 +71,8 @@
     "pull-stream": "^3.6.9",
     "sodium-native": "^2.2.6",
     "tre-activity-indicator": "^1.0.0",
-    "tre-file-importer": "^3.1.5"
+    "tre-file-importer": "^3.1.5",
+    "ssb-ref": "^2.13.9",
+    "tre-texttracks": "^1.1.0"
   }
 }

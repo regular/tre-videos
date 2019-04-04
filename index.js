@@ -1,12 +1,16 @@
 // jshint -W018
 const h = require('mutant/html-element')
 const Value = require('mutant/value')
+const MutantArray = require('mutant/array')
 const Str = require('tre-string')
+const TextTracks = require('tre-texttracks')
 const computed = require('mutant/computed')
 const debug = require('debug')('tre-videos:index')
 const dragAndDrop = require('./drag-and-drop')
 const setStyle = require('module-styles')('tre-videos')
 const activityIndicator = require('tre-activity-indicator')
+const WatchMerged = require('tre-prototypes')
+const {isMsgId} = require('ssb-ref')
 
 const {importFiles, factory} = require('./common')
 
@@ -15,6 +19,9 @@ module.exports = function(ssb, opts) {
   const getSrcObs = Source(ssb)
   const {prototypes} = opts
   if (!prototypes) throw new Error('need prototypes!')
+
+  const watchMerged = WatchMerged(ssb)
+  const renderTextTrack = TextTracks(ssb, {prototypes})
 
   styles()
 
@@ -30,7 +37,7 @@ module.exports = function(ssb, opts) {
     const previewObs = ctx.previewObs || Value(kv)
     const previewContentObs = computed(previewObs, kv => kv && kv.value.content)
     const ownContentObs = ctx.contentObs || Value({})
-    const src = getSrcObs(previewContentObs)
+    const srcObs = getSrcObs(previewContentObs)
     const uploading = Value(false)
     const progress = Value(0)
     const {isEmbedded, autoplay} = ctx
@@ -51,22 +58,45 @@ module.exports = function(ssb, opts) {
     // See https://github.com/videojs/video.js/issues/455
     if (window.stop) window.stop()
 
+    const textTrackRefs = computed(previewContentObs, content => {
+      return content && content.texttracks || []
+    })
+
+    const textTracks = computed(textTrackRefs, refs => {
+      let els = refs.map(ref=>{
+        if (!isMsgId(ref)) {
+          console.warn('textrack ref is invalid', ref)
+          return
+        }
+        return computed(watchMerged(ref, {allowAllAuthors: true}), kv => {
+          if (!kv) return []
+          const t = renderTextTrack(kv, {
+            where: 'stage',
+            'default': true
+          })
+          console.log('rendered track', t)
+          return t
+        })
+      })
+      els = els.filter(e => Boolean(e))
+      console.log('TRACKS', els)
+      return MutantArray(els)
+    })
+
     let el
     function replay() {
-      const source = el.querySelector('source')
-      source.setAttribute('src', src())
-      el.load()
+      load()
       el.play()
     }
 
     function load() {
-      const source = el.querySelector('source')
-      source.setAttribute('src', src())
+      el.setAttribute('src', srcObs())
       console.log('Loading video meta data ...')
       el.load()
     }
 
     el = h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
+      src: srcObs,
       width: computed(previewContentObs, c => c && c.width || 640),
       height: computed(previewContentObs, c => c && c.height || 480),
       //preload: "none",
@@ -79,6 +109,10 @@ module.exports = function(ssb, opts) {
         replay()
       },
       'ev-loadedmetadata': () => {
+        if (!el) {
+          console.warn('loadedmetadata withoud video element')
+          return
+        }
         console.log(`loaded video props: ${el.videoWidth}x${el.videoHeight} ${el.duration}`)
         uploading.set(false)
         set({
@@ -87,11 +121,7 @@ module.exports = function(ssb, opts) {
           duration: el.duration
         })
       }
-    }), [
-      h('source', {
-        src: src()
-      }),
-    ])
+    }), textTracks)
 
     if (!inEditor) return el
 
