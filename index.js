@@ -2,12 +2,14 @@
 const h = require('mutant/html-element')
 const Value = require('mutant/value')
 const Str = require('tre-string')
+const TextTracks = require('tre-texttracks')
 const computed = require('mutant/computed')
 const debug = require('debug')('tre-videos:index')
 const dragAndDrop = require('./drag-and-drop')
 const setStyle = require('module-styles')('tre-videos')
 const activityIndicator = require('tre-activity-indicator')
-
+const WatchMerged = require('tre-prototypes')
+const {isMsgId} = require('ssb-ref')
 const {importFiles, factory} = require('./common')
 
 module.exports = function(ssb, opts) {
@@ -15,6 +17,9 @@ module.exports = function(ssb, opts) {
   const getSrcObs = Source(ssb)
   const {prototypes} = opts
   if (!prototypes) throw new Error('need prototypes!')
+
+  const watchMerged = WatchMerged(ssb)
+  const renderTextTrack = TextTracks(ssb, {prototypes})
 
   styles()
 
@@ -28,7 +33,7 @@ module.exports = function(ssb, opts) {
     ) return
     ctx = ctx || {}
     const previewObs = ctx.previewObs || Value(kv)
-    const previewContentObs = computed(previewObs, kv => kv && kv.value.content)
+    const previewContentObs = computed(previewObs, kv => kv && kv.value.content || computed.NO_CHANGE)
     const ownContentObs = ctx.contentObs || Value({})
     const src = getSrcObs(previewContentObs)
     const uploading = Value(false)
@@ -51,49 +56,80 @@ module.exports = function(ssb, opts) {
     // See https://github.com/videojs/video.js/issues/455
     if (window.stop) window.stop()
 
-    let el
+    const textTrackRefs = computed(previewContentObs, content => {
+      return content.texttracks || []
+    })
+
+    function textTracks(refs) {
+      let els = refs.map(ref=>{
+        if (!isMsgId(ref)) {
+          console.warn('textrack ref is invalid', ref)
+          return
+        }
+        return computed(watchMerged(ref, {allowAllAuthors: true}), kv => {
+          if (!kv) return []
+          const t = renderTextTrack(kv, {
+            where: 'stage'
+          })
+          console.log('rendered track', t)
+          return t
+        })
+      })
+      els = els.filter(e=>Boolean(e))
+      console.log('TRACKS', els)
+      return els
+    }
+
+    let elObs
     function replay() {
-      const source = el.querySelector('source')
+      const source = elObs().querySelector('source')
       source.setAttribute('src', src())
-      el.load()
-      el.play()
+      elObs().load()
+      elObs().play()
     }
 
     function load() {
-      const source = el.querySelector('source')
+      const source = elObs().querySelector('source')
       source.setAttribute('src', src())
       console.log('Loading video meta data ...')
-      el.load()
+      elObs().load()
     }
 
-    el = h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
-      width: computed(previewContentObs, c => c && c.width || 640),
-      height: computed(previewContentObs, c => c && c.height || 480),
-      //preload: "none",
-      autoplay,
-      // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
-      // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
-      muted: true,
+    elObs = computed(previewContentObs, content => {
+      h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
+        width: content.width || 640,
+        height: content.height || 480,
+        //preload: "none",
+        autoplay,
+        // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
+        // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
+        muted: true,
 
-      'ev-replay': function() {
-        replay()
-      },
-      'ev-loadedmetadata': () => {
-        console.log(`loaded video props: ${el.videoWidth}x${el.videoHeight} ${el.duration}`)
-        uploading.set(false)
-        set({
-          width: el.videoWidth,
-          height: el.videoHeight,
-          duration: el.duration
-        })
-      }
-    }), [
-      h('source', {
-        src: src()
-      }),
-    ])
+        'ev-replay': function() {
+          replay()
+        },
+        'ev-loadedmetadata': e => {
+          if (!elObs()) {
+            console.warn('loadedmetadata event before video tag was created', e)
+            return
+          }
+          console.log(`loaded video props: ${elObs().videoWidth}x${elObs().videoHeight} ${el.duration}`)
+          uploading.set(false)
+          set({
+            width: elObs().videoWidth,
+            height: elObs().videoHeight,
+            duration: elObs().duration
+          })
+        }
+      }), [
+        h('source', {
+          src: src()
+        }),
+        textTracks(content.texttracks || [])
+      ])
+    })
 
-    if (!inEditor) return el
+    if (!inEditor) return elObs
 
     return h('.tre-videos-editor', [
       h('h1', renderStr(computed(previewObs, kv => kv && kv.value.content.name || 'No Name'))),
@@ -104,7 +140,7 @@ module.exports = function(ssb, opts) {
           return Math.floor(p*100) + '%'
         }))
       ] : [
-        el,
+        elObs,
         h('.tre-videos-controls', [
           h('button', {
             'ev-click': ()=> load()
