@@ -36,6 +36,7 @@ module.exports = function(ssb, opts) {
     ctx = ctx || {}
     const previewObs = ctx.previewObs || Value(kv)
     const previewContentObs = computed(previewObs, kv => kv && kv.value.content)
+    const {currentLanguageObs, languagesObs} = ctx
     const ownContentObs = ctx.contentObs || Value({})
     const srcObs = getSrcObs(previewContentObs)
     const uploading = Value(false)
@@ -72,7 +73,19 @@ module.exports = function(ssb, opts) {
           if (!kv) return []
           const t = renderTextTrack(kv, {
             where: 'stage',
-            'default': true
+            defaultObs: computed(currentLanguageObs, currLanguage => {
+              console.log('CURR LANG is', currLanguage)
+              const {language, kind, name} = kv.value.content
+              console.log('TRACK', name, 'language is', language, 'kind is', kind)
+
+              if (language && currLanguage) {
+                return language == currLanguage
+              }
+              // none language-specific streams should be
+              if (!language) return true
+              // if there's only one, it's the default
+              return textTrackRefs.length == 1
+            })
           })
           return t
         })
