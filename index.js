@@ -74,12 +74,10 @@ module.exports = function(ssb, opts) {
             where: 'stage',
             'default': true
           })
-          console.log('rendered track', t)
           return t
         })
       })
       els = els.filter(e => Boolean(e))
-      console.log('TRACKS', els)
       return MutantArray(els)
     })
 
@@ -107,6 +105,13 @@ module.exports = function(ssb, opts) {
 
       'ev-replay': function() {
         replay()
+      },
+      'ev-ended': e => {
+        console.log('tre-video: video ended')
+        // this event doesn't bubble normally, but we want it to!
+        if (!e.bubbles) {
+          sendEvent(el, 'ended')
+        }
       },
       'ev-loadedmetadata': () => {
         if (!el) {
@@ -187,6 +192,18 @@ function Source(ssb) {
     })
   }
 }
+
+// -- utils
+
+function sendEvent(el, name) {
+  const event = new UIEvent(name, {
+    view: window,
+    bubbles: true,
+    cancelable: true
+  })
+  return el.dispatchEvent(event)
+}
+
 
 function styles() {
   setStyle(`
