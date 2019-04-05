@@ -71,20 +71,25 @@ module.exports = function(ssb, opts) {
         }
         return computed(watchMerged(ref, {allowAllAuthors: true}), kv => {
           if (!kv) return []
+          const activeObs = computed(currentLanguageObs, currLanguage => {
+            const {language, kind, name} = kv.value.content
+            if (language && currLanguage) {
+              return language == currLanguage
+            }
+            // none language-specific streams should be
+            if (!language) return true
+            // if there's only one, it's the default
+            return textTrackRefs.length == 1
+          })
+
           const t = renderTextTrack(kv, {
             where: 'stage',
-            defaultObs: computed(currentLanguageObs, currLanguage => {
-              console.log('CURR LANG is', currLanguage)
-              const {language, kind, name} = kv.value.content
-              console.log('TRACK', name, 'language is', language, 'kind is', kind)
-
-              if (language && currLanguage) {
-                return language == currLanguage
+            defaultObs: activeObs,
+            modeObs: computed(activeObs, a => {
+              if (kv && kv.value.content.kind == 'metadata') {
+                return 'hidden'
               }
-              // none language-specific streams should be
-              if (!language) return true
-              // if there's only one, it's the default
-              return textTrackRefs.length == 1
+              return a ? 'showing' : 'disabled'
             })
           })
           return t
