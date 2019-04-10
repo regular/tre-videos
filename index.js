@@ -125,8 +125,10 @@ module.exports = function(ssb, opts) {
         replay()
       },
       'ev-ended': e => {
-        console.log('tre-video: video ended')
+        console.warn('tre-video: video ended, freeing network connection')
         // this event doesn't bubble normally, but we want it to!
+        el.setAttribute('src', '')
+        el.load()
         if (!e.bubbles) {
           sendEvent(el, 'ended')
         }
