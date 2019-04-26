@@ -209,7 +209,7 @@ function Source(ssb) {
       const blob = content && content.blob
       if (!blob) return null
       return `${bp}${encodeURIComponent(blob)}${contentType ? '?contentType=' + encodeURIComponent(contentType) : ''}`
-    })
+    }, {comparer: (a,b)=>a==b})
   }
 }
 
