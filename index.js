@@ -126,6 +126,7 @@ module.exports = function(ssb, opts) {
       },
       'ev-ended': e => {
         if (!e.bubbles) {
+          if (el.getAttribute('src') == '') return
           console.warn('tre-video: video ended, freeing network connection')
           // this event doesn't bubble normally, but we want it to!
           el.setAttribute('src', '')
