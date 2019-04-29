@@ -112,6 +112,9 @@ module.exports = function(ssb, opts) {
     }
 
     el = h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
+      attributes: inEditor ? {
+        controls: ''
+      } : {},
       src: srcObs,
       width: computed(previewContentObs, c => c && c.width || 640),
       height: computed(previewContentObs, c => c && c.height || 480),
@@ -120,7 +123,6 @@ module.exports = function(ssb, opts) {
       // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
       // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
       muted: true,
-
       'ev-replay': function() {
         replay()
       },
