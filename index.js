@@ -43,6 +43,7 @@ module.exports = function(ssb, opts) {
     const progress = Value(0)
     const {isEmbedded, autoplay} = ctx
 
+
     function set(o) {
       ownContentObs.set(Object.assign({}, ownContentObs(), o))
     }
@@ -111,7 +112,10 @@ module.exports = function(ssb, opts) {
       el.load()
     }
 
+    const retry = Retry()
+
     el = h('video.tre-video', Object.assign({}, dragAndDrop(upload), {
+      hooks: [el=>retry.abort],
       attributes: inEditor ? {
         controls: ''
       } : {},
@@ -123,6 +127,7 @@ module.exports = function(ssb, opts) {
       // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
       // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
       muted: true,
+      'ev-error': retry,
       'ev-replay': function() {
         replay()
       },
@@ -250,4 +255,29 @@ function styles() {
   `)
 }
 
+function Retry(t) {
+  t = t || 250
+  let retry = 0
+  let timerId
 
+  function abort() {
+    if (timerId) {
+      clearTimeout(timerId)
+      timerId = null
+    }
+  }
+
+  const onerror = function(ev) {
+    const el = ev.target
+    const src = el.getAttribute('src')
+    if (src == '') return // we expect this
+    console.warn('Error loading video')
+    timerId = setTimeout( ()=>{
+      console.warn(`Retry ${retry} to load ${src}`)
+      el.setAttribute('src', src)
+    }, (1<<retry++) * 250)
+  }
+
+  onerror.abort = abort
+  return onerror
+}
