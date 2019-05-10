@@ -155,6 +155,8 @@ module.exports = function(ssb, opts) {
         })
       }
     }), textTracks)
+    
+    retry.setElement(el)
 
     if (!inEditor) return el
 
@@ -258,26 +260,45 @@ function styles() {
 function Retry(t) {
   t = t || 250
   let retry = 0
-  let timerId
+  let timerId, intervalId
+  let errorFired = false
 
   function abort() {
     if (timerId) {
       clearTimeout(timerId)
       timerId = null
     }
+    if (intervalId) {
+      clearInterval(intervalId)
+      intervalId = null
+    }
   }
 
   const onerror = function(ev) {
+    errorFired = true
     const el = ev.target
     const src = el.getAttribute('src')
     if (src == '') return // we expect this
     console.warn('Error loading video')
     timerId = setTimeout( ()=>{
+      errorFired = false
       console.warn(`Retry ${retry} to load ${src}`)
       el.setAttribute('src', src)
     }, (1<<retry++) * 250)
   }
 
   onerror.abort = abort
+  onerror.setElement = function(el) {
+    if (intervalId) return
+    console.warn('actively polling error state on video')
+    intervalId = setInterval(()=>{
+      if (errorFired) return
+      if (!el.error) return
+      console.warn('video: .error is set without error event having fired.', el.error.message)
+      const src = el.getAttribute('src')
+      el.setAttribute('src', src)
+    }, 1000)
+  }
+
   return onerror
 }
