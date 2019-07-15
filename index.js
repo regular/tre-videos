@@ -41,7 +41,7 @@ module.exports = function(ssb, opts) {
     const srcObs = getSrcObs(previewContentObs)
     const uploading = Value(false)
     const progress = Value(0)
-    const {isEmbedded, autoplay} = ctx
+    const {isEmbedded, autoplay, loop} = ctx
 
 
     function set(o) {
@@ -124,6 +124,7 @@ module.exports = function(ssb, opts) {
       height: computed(previewContentObs, c => c && c.height || 480),
       //preload: "none",
       autoplay,
+      loop,
       // see https://developers.google.com/web/updates/2017/09/autoplay-policy-changes
       // and https://cs.chromium.org/chromium/src/media/base/media_switches.cc?sq=package:chromium&type=cs&l=179
       muted: true,
